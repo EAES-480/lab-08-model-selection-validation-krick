@@ -12,7 +12,7 @@ output:
     code_folding: hide
     df_print: paged
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
@@ -63,19 +63,19 @@ By the end of this lab, you should be able to:
 
 ## Load and inspect
 
-```{r load_data, echo=TRUE, eval=FALSE}
+```{r load_data, echo=TRUE, eval=TRUE}
 # GOAL: Read the dataset and keep 2023 observations.
 
 df <- read_csv("data/us-ams-simple.csv", na = c("-9999")) %>%
   clean_names() %>%
-  filter(year_local == ___)
+  filter(year_local == 2023)
 
 glimpse(df)
 ```
 
 ## Derive time columns if needed
 
-```{r derive_time, echo=TRUE, eval=FALSE}
+```{r derive_time, echo=TRUE, eval=TRUE}
 # GOAL: Create date / month columns if they do not already exist.
 
 df <- df %>%
@@ -99,10 +99,10 @@ Possible examples:
 - response: `le`, `fc`, `gpp`
 - predictors: `ta`, `swc`, `vpd`, `rg`
 
-```{r choose_vars, echo=TRUE, eval=FALSE}
-response_var <- "___"
-pred1 <- "___"
-pred2 <- "___"
+```{r choose_vars, echo=TRUE, eval=TRUE}
+response_var <- "gpp"
+pred1 <- "swc"
+pred2 <- "ta"
 
 # CHECK: do these variables exist?
 c(response_var, pred1, pred2) %in% names(df)
@@ -110,17 +110,19 @@ c(response_var, pred1, pred2) %in% names(df)
 
 > Which variables did you choose, and why do you think they may be related?
 
+I chose `gpp` as my response variable and `swc` and `ta` as my predictor variables. I chose `ta` and `swc` as predictor values for `gpp` because plant growth and productivity depend upon the the amount of water plants receive or have access to, as well as the temperature of the environment they are in. If it is too hot or too cold, plants might not be able to survive. Furthermore, they both change seasonally, like `gpp`, meaning they might be variables that impact `gpp`. For example, `ta`, or air temperature, is usually warmer in the spring and summer, when `gpp` tends to be  highest, than in the fall and winter, when `gpp` tends to be lowest.
+
 ---
 
 ## 2) Create a clean analysis dataset
 
 Keep only rows with non-missing values for your chosen variables.
 
-```{r make_analysis_df, echo=TRUE, eval=FALSE}
+```{r make_analysis_df, echo=TRUE, eval=TRUE}
 # GOAL: Create an analysis data frame using only complete cases.
 
 df_mod <- df %>%
-  select(___, ___, ___) %>%
+  select("gpp", "swc", "ta") %>%
   drop_na()
 
 glimpse(df_mod)
@@ -135,17 +137,17 @@ Fit:
 - **Model 2:** response ~ pred2
 - **Model 3:** response ~ pred1 + pred2
 
-```{r fit_models, echo=TRUE, eval=FALSE}
-m1 <- lm(___ ~ ___, data = df_mod)
-m2 <- lm(___ ~ ___, data = df_mod)
-m3 <- lm(___ ~ ___ + ___, data = df_mod)
+```{r fit_models, echo=TRUE, eval=TRUE}
+m1 <- lm(gpp ~ swc, data = df_mod)
+m2 <- lm(gpp ~ ta, data = df_mod)
+m3 <- lm(gpp ~ swc + ta , data = df_mod)
 ```
 
 ---
 
 ## 4) View coefficients with `tidy()`
 
-```{r tidy_models, echo=TRUE, eval=FALSE}
+```{r tidy_models, echo=TRUE, eval=TRUE}
 tidy(m1)
 tidy(m2)
 tidy(m3)
@@ -153,13 +155,15 @@ tidy(m3)
 
 > Which coefficients are positive? Which are negative? Do they make scientific sense?
 
+The coefficient of `ta` is positive, whereas the coefficient of `swc` is negative. The coefficient for `swc` does not make scientific sense, but the coefficient for `ta` does make sense. 
+
 ---
 
 ## 5) Visualize at least two one-predictor models
 
 Make scatterplots with fitted linear trends for Model 1 and Model 2.
 
-```{r plot_m1, echo=TRUE, eval=FALSE}
+```{r plot_m1, echo=TRUE, eval=TRUE}
 ggplot(df_mod, aes(x = .data[[pred1]], y = .data[[response_var]])) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -171,7 +175,7 @@ ggplot(df_mod, aes(x = .data[[pred1]], y = .data[[response_var]])) +
   )
 ```
 
-```{r plot_m2, echo=TRUE, eval=FALSE}
+```{r plot_m2, echo=TRUE, eval=TRUE}
 ggplot(df_mod, aes(x = .data[[pred2]], y = .data[[response_var]])) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -185,11 +189,13 @@ ggplot(df_mod, aes(x = .data[[pred2]], y = .data[[response_var]])) +
 
 > Visually, which model seems stronger? Why?
 
+Model 2 seems visually stronger. This is because the linear relationship is clearer and appears to be stronger in Model 2 than in Model 1. Model 2 also has more structure to the values scattered around the line than Model 1. 
+
 ---
 
 ## 6) Get fitted values and residuals with `augment()`
 
-```{r augment_models, echo=TRUE, eval=FALSE}
+```{r augment_models, echo=TRUE, eval=TRUE}
 aug_m1 <- augment(m1, data = df_mod)
 aug_m2 <- augment(m2, data = df_mod)
 aug_m3 <- augment(m3, data = df_mod)
@@ -211,7 +217,7 @@ And:
 
 $SST = SSR + SSE$
 
-```{r ss_model1, echo=TRUE, eval=FALSE}
+```{r ss_model1, echo=TRUE, eval=TRUE}
 y <- df_mod[[response_var]]
 ybar <- mean(y)
 
@@ -228,6 +234,8 @@ tibble(
 
 > In words, what do SST and SSE represent?
 
+`SST` represents the total variation in the response variable `gpp`. `SSE` represents the variation in the response variable `ggp` that is not explained by the model. 
+
 ---
 
 ## 8) Compute R-squared manually for Model 1
@@ -236,19 +244,21 @@ Use:
 
 $R^2 = 1 - SSE / SST$
 
-```{r r2_manual, echo=TRUE, eval=FALSE}
-r2_m1_manual <- ___
+```{r r2_manual, echo=TRUE, eval=TRUE}
+r2_m1_manual <- 1 - sse_m1 / sst
 
 r2_m1_manual
 ```
 
 ## 9) Compare to `glance()`
 
-```{r glance_model1, echo=TRUE, eval=FALSE}
+```{r glance_model1, echo=TRUE, eval=TRUE}
 glance(m1)
 ```
 
 > Does your manual R-squared match the value from `glance()`?
+
+Yes my manual R-squared (0.1199387) matches the value from `glance()` (0.1199387).
 
 ---
 
@@ -259,9 +269,9 @@ Use:
 - $MSE = mean(e_i^2)$
 - $RMSE = sqrt(MSE)$
 
-```{r mse_rmse_m1, echo=TRUE, eval=FALSE}
-mse_m1 <- ___
-rmse_m1 <- ___
+```{r mse_rmse_m1, echo=TRUE, eval=TRUE}
+mse_m1 <- mean (aug_m1$.resid^2)
+rmse_m1 <- sqrt(mse_m1)
 
 tibble(
   mse_m1 = mse_m1,
@@ -271,11 +281,13 @@ tibble(
 
 > What does RMSE mean in the units of your response variable?
 
+The expected error of the models predictions is 9.723972 µmolCO2 m-2 s-1 away from the actual `gpp` values.
+
 ---
 
 ## 11) Compare all three models using `glance()`
 
-```{r compare_glance, echo=TRUE, eval=FALSE}
+```{r compare_glance, echo=TRUE, eval=TRUE}
 bind_rows(
   glance(m1) %>% mutate(model = "m1"),
   glance(m2) %>% mutate(model = "m2"),
@@ -286,11 +298,13 @@ bind_rows(
 
 > Which model has the highest R-squared? Is that enough to call it the best model?
 
+Model `m3` has the highest r-squared. That is not enough to call it the best model. 
+
 ---
 
 ## 12) Compare all three models using RMSE
 
-```{r compare_rmse, echo=TRUE, eval=FALSE}
+```{r compare_rmse, echo=TRUE, eval=TRUE}
 rmse_tbl <- bind_rows(
   augment(m1, data = df_mod) %>%
     summarise(rmse = sqrt(mean(.resid^2))) %>%
@@ -308,13 +322,15 @@ rmse_tbl
 
 > Which model has the smallest RMSE? Does that agree with the R-squared ranking?
 
+Model `m3` has the smallest RMSE. That does agree with the R-squared ranking. 
+
 ---
 
 ## 13) Compare residual plots
 
 Make residual vs fitted plots for at least two models.
 
-```{r resid_plot_m1, echo=TRUE, eval=FALSE}
+```{r resid_plot_m1, echo=TRUE, eval=TRUE}
 ggplot(aug_m1, aes(x = .fitted, y = .resid)) +
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -326,7 +342,7 @@ ggplot(aug_m1, aes(x = .fitted, y = .resid)) +
   )
 ```
 
-```{r resid_plot_m3, echo=TRUE, eval=FALSE}
+```{r resid_plot_m3, echo=TRUE, eval=TRUE}
 ggplot(aug_m3, aes(x = .fitted, y = .resid)) +
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -340,6 +356,8 @@ ggplot(aug_m3, aes(x = .fitted, y = .resid)) +
 
 > Do the residual plots suggest any problems (curvature, changing variance, outliers)? Which model looks more appropriate?
 
+The residual plots do suggest problems. Model 1 looks more appropriate because its residuals are more randomly scattered around zero, suggesting no strong curvature. This means that for Model 1 the assumption of linearity is met. However, the residual plot for Model 3 shows a strong curvature. Furthermore, Model 3 displays a fan-shaped, suggesting strong heteroscedasticity. This means that for Model 3 the assumption of lineararity is violated. 
+
 ---
 
 ## 14) Make a model selection decision
@@ -348,16 +366,16 @@ Choose the model you think is best supported by the evidence.
 
 Fill in:
 
-> My preferred model is `___`
+> My preferred model is `Model 3`
 
 > I based this decision on:
-> - `___`
-> - `___`
-> - `___`
+> - `Model 3 has the highest r-squared value`
+> - `Model 3 has the lowest RMSE value`
+> - `Model 3 has residuals that are generally centered around zero`
 
 **Prompt (5–7 sentences):** Explain why you chose this model. Use at least two quantitative criteria (such as R-squared, RMSE, or sigma) and one visual criterion (such as the residual plot or scatterplot). Also explain why a different model was less convincing.
 
-> *Write your answer here.*
+> I chose Model 3 because it had the highest R-squared value, meaning the model explained more of the variability in `gpp` than the other models. I also chose Model 3 because it had the lowest RMSE value, meaning its prediction error is smaller than the other models. This suggests that the Model 3's predicted values where closer to the actual values than the other models predicted values were. Finally, I chose Model 3 because, despite the issues in linearity in its residual plot, the plot revealed that the residuals where still generally centered around zero. Model 3 had smaller residuals than the other models, indicating that the predicted values where close to the actual values. Model 1 was less convincing because it had a low R-squared value and a high RMSE value. Furthermore, Model 1 also had higher residuals than Model 3, despite the assumption of linearity being met.  
 
 ---
 
