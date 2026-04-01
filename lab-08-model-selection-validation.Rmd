@@ -410,10 +410,10 @@ Possible examples depend on your file, but might include things like:
 - `h`
 - `rh`
 
-```{r choose_new_predictors, echo=TRUE, eval=FALSE}
+```{r choose_new_predictors, echo=TRUE, eval=TRUE}
 response_var <- "le"
-pred1 <- "___"
-pred2 <- "___"
+pred1 <- "fc"
+pred2 <- "gpp"
 
 # CHECK: do these exist?
 c(response_var, pred1, pred2) %in% names(df)
@@ -421,15 +421,17 @@ c(response_var, pred1, pred2) %in% names(df)
 
 > Why did you choose these two predictors?
 
+I chose `gpp` and `fc` as the predictor variables because both variables are physically related to `le`. Both represent ecosystem carbon exchange and plant activity, which influence evapotranspiration. During evapotranspiration, heat is released from the phase change that occurs, thus releasing latent heat. 
+
 ---
 
 ## 16) Create a clean modeling dataset
 
 Keep only complete cases for the response and the two predictors.
 
-```{r make_prediction_df, echo=TRUE, eval=FALSE}
+```{r make_prediction_df, echo=TRUE, eval=TRUE}
 df_pred <- df %>%
-  select(___, ___, ___) %>%
+  select("le", "fc","gpp") %>%
   drop_na()
 
 glimpse(df_pred)
@@ -437,14 +439,16 @@ glimpse(df_pred)
 
 > How many observations remain after removing missing values?
 
+16,973 observations remain after removing missing values. This is the same number of observations as the original data. 
+
 ---
 
 ## 17) Shuffle rows and create a train/test split
 
 Use 20% of the data as a final **test set**.
 
-```{r split_train_test, echo=TRUE, eval=FALSE}
-set.seed(___)
+```{r split_train_test, echo=TRUE, eval=TRUE}
+set.seed(666)
 
 df_shuf <- df_pred %>%
   slice_sample(prop = 1)
@@ -463,6 +467,8 @@ tibble(
 
 > Why do we keep the test set separate from model selection?
 
+We keep the test set separate from model selection so that we receive an unbiased evaluation of the model. If we used the test data it could lead to overfitting.
+
 ---
 
 ## 18) Define two candidate models
@@ -474,16 +480,16 @@ Use:
 
 Write them out in words below:
 
-> Model 1: `___`
+> Model 1: `le is predicted using fc as the only predictor`
 
-> Model 2: `___`
+> Model 2: `le is predicted using both fc and gpp as predictors`
 
 ---
 
 ## 19) Create 4 folds on the training data
 
-```{r make_cv_folds, echo=TRUE, eval=FALSE}
-set.seed(___)
+```{r make_cv_folds, echo=TRUE, eval=TRUE}
+set.seed(666)
 
 train_folds <- train_data %>%
   mutate(fold = rep(1:4, length.out = n()))
@@ -492,6 +498,8 @@ train_folds %>% count(fold)
 ```
 
 > Why do we create folds only on the training data, and not using the test data?
+
+We only create folds only on the training data, and not the test data so we can evaluate the models without using the test data. If we were to use the test data, the model would learn from the test set, which would bias the results by causing overfitting. When we keep the test data separate, it can be used at the end to tell us how well the final model works. 
 
 ---
 
@@ -503,14 +511,14 @@ For each fold:
 - validate on 1 held-out fold
 - compute RMSE
 
-```{r cv_loop, echo=TRUE, eval=FALSE}
+```{r cv_loop, echo=TRUE, eval=TRUE}
 cv_results <- map_dfr(1:4, function(k) {
 
   cv_train <- train_folds %>% filter(fold != k)
   cv_valid <- train_folds %>% filter(fold == k)
 
-  m1 <- lm(___ ~ ___, data = cv_train)
-  m2 <- lm(___ ~ ___ + ___, data = cv_train)
+  m1 <- lm(le ~ fc, data = cv_train)
+  m2 <- lm(le ~ fc + gpp, data = cv_train)
 
   tibble(
     fold = k,
@@ -531,12 +539,12 @@ cv_results
 
 Compute the mean and SD of RMSE across folds.
 
-```{r cv_summary, echo=TRUE, eval=FALSE}
+```{r cv_summary, echo=TRUE, eval=TRUE}
 cv_summary <- cv_results %>%
   group_by(model) %>%
   summarise(
-    mean_rmse = ___,
-    sd_rmse = ___,
+    mean_rmse = mean(rmse),
+    sd_rmse = sd(rmse),
     .groups = "drop"
   )
 
@@ -546,11 +554,13 @@ cv_summary
 > Which model has the lower average validation RMSE?  
 > What does the SD across folds tell you?
 
+Model 2 has the lower average validation RMSE. The SD across folds tells me how much the RMSE varies between the different cross-validation folds. The SD of Model 1 is slightly higher than that of Model 2, but they are not extremely different. 
+
 ---
 
 ## 22) Visualize fold-by-fold validation RMSE
 
-```{r plot_cv_results, echo=TRUE, eval=FALSE}
+```{r plot_cv_results, echo=TRUE, eval=TRUE}
 ggplot(cv_results, aes(x = factor(fold), y = rmse, color = model, group = model)) +
   geom_point(size = 3) +
   geom_line() +
@@ -564,15 +574,17 @@ ggplot(cv_results, aes(x = factor(fold), y = rmse, color = model, group = model)
 
 > Does one model win consistently across folds, or only sometimes?
 
+Model 2 consistently across folds has lower mean RMSE values than Model 1.
+
 ---
 
 ## 23) Choose your preferred model
 
 Fill in:
 
-> My selected model is: `___`
+> My selected model is: `Model 2`
 
-> I chose it because: `___`
+> I chose it because: `It has a lower average RMSE and has consistently lower mean RMSE values across folds.`
 
 ---
 
@@ -580,8 +592,8 @@ Fill in:
 
 Use all of `train_data` now that you have selected the model.
 
-```{r refit_final_model, echo=TRUE, eval=FALSE}
-final_model <- lm(___, data = train_data)
+```{r refit_final_model, echo=TRUE, eval=TRUE}
+final_model <- lm(le ~ fc + gpp, data = train_data)
 
 tidy(final_model)
 ```
@@ -592,7 +604,7 @@ tidy(final_model)
 
 Use `predict()` and compute test RMSE.
 
-```{r test_evaluation, echo=TRUE, eval=FALSE}
+```{r test_evaluation, echo=TRUE, eval=TRUE}
 test_pred <- predict(final_model, newdata = test_data)
 
 test_rmse <- sqrt(mean((test_data[[response_var]] - test_pred)^2))
@@ -601,6 +613,8 @@ test_rmse
 ```
 
 > How does the test RMSE compare with the cross-validation RMSE?
+
+The test RMSE (38.66634) is slightly lower than the cross-validation RMSE (39.42777), but they are relatively close. 
 
 ---
 
@@ -613,7 +627,7 @@ Answer in **5–7 sentences**:
 - Did the chosen model generalize well to test data?
 - What would it mean if test RMSE were much worse than validation RMSE?
 
-> *Write your answer here.*
+> I did not use the test data during model selection because the test set has to remain separate so it can be used at the end to assess the model's performance. Using it during model selection could lead to overfitting, where the model appears better than it really is. Cross-validation on the training data allowed me to estimate the performances of both models across various folds. Model 2 was selected because it had a lower mean RMSE. When I evaluated the chosen model using the test data, the RSME value was similar to the test value, suggesting it generalized well to the test data. If the test RMSE had been much worse than the validation RMSE, it would indicate that the model was overfitting to the training data. Overall, cross-validation gave us confidence that the model’s performance estimates were reliable and not specific to a particular fold of the data.
 
 ---
 
